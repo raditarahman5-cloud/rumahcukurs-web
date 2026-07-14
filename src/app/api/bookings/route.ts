@@ -35,8 +35,14 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  let body: any = {};
   try {
-    const body = await request.json();
+    body = await request.json();
+  } catch(e) {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
+
+  try {
     const { userId, serviceId, bookingDate, customerName } = body;
 
     let finalUserId = userId;
@@ -73,7 +79,6 @@ export async function POST(request: Request) {
     return NextResponse.json(booking, { status: 201 });
   } catch (error) {
     console.error('Prisma Error (likely Netlify SQLite issue), using fallback:', error);
-    const body = await request.clone().json();
     
     // Add to memory fallback
     const newBooking = {
