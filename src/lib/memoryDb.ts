@@ -5,15 +5,18 @@ import os from 'os';
 const dbPath = path.join(os.tmpdir(), 'rumahcukurs-db.json');
 
 function getDb() {
+  let db = { bookings: [], finance: [] };
   try {
     if (fs.existsSync(dbPath)) {
       const data = fs.readFileSync(dbPath, 'utf8');
-      return JSON.parse(data);
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed.bookings)) db.bookings = parsed.bookings;
+      if (Array.isArray(parsed.finance)) db.finance = parsed.finance;
     }
   } catch (e) {
     console.error("FS Read error:", e);
   }
-  return { bookings: [], finance: [] };
+  return db;
 }
 
 function saveDb(data: any) {
@@ -35,26 +38,33 @@ export function addMemoryBooking(booking: any) {
 }
 
 export function updateMemoryBookingStatus(id: string, status: string) {
-  const db = getDb();
-  const bIndex = db.bookings.findIndex((b: any) => b.id === id);
-  if (bIndex > -1) {
-    const oldStatus = db.bookings[bIndex].status;
-    db.bookings[bIndex].status = status;
-    
-    // Auto finance
-    if (status === 'completed' && oldStatus !== 'completed') {
-      db.finance.push({
-        id: `fin-${Date.now()}`,
-        bookingId: id,
-        amount: db.bookings[bIndex].service.price,
-        type: 'income',
-        createdAt: new Date(),
-        booking: db.bookings[bIndex]
-      });
+  try {
+    const db = getDb();
+    if (!Array.isArray(db.finance)) db.finance = [];
+    if (!Array.isArray(db.bookings)) db.bookings = [];
+
+    const bIndex = db.bookings.findIndex((b: any) => b.id === id);
+    if (bIndex > -1) {
+      const oldStatus = db.bookings[bIndex].status;
+      db.bookings[bIndex].status = status;
+      
+      // Auto finance
+      if (status === 'completed' && oldStatus !== 'completed') {
+        db.finance.push({
+          id: `fin-${Date.now()}`,
+          bookingId: id,
+          amount: db.bookings[bIndex].service?.price || 0,
+          type: 'income',
+          createdAt: new Date(),
+          booking: db.bookings[bIndex]
+        });
+      }
+      
+      saveDb(db);
+      return db.bookings[bIndex];
     }
-    
-    saveDb(db);
-    return db.bookings[bIndex];
+  } catch (e) {
+    console.error("Update status memory db error:", e);
   }
   return null;
 }
