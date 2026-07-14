@@ -10,6 +10,16 @@ export default function AdminDashboard() {
 
   const fetchData = async () => {
     try {
+      const isNetlify = typeof window !== 'undefined' && window.location.hostname.includes('netlify');
+      if (isNetlify) {
+        const localBookings = JSON.parse(localStorage.getItem('netlify_bookings') || '[]');
+        const localFinance = JSON.parse(localStorage.getItem('netlify_finance') || '{"totalIncome":0,"totalTransactions":0}');
+        setBookings(localBookings.sort((a:any, b:any) => new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime()));
+        setFinance(localFinance);
+        setLoading(false);
+        return;
+      }
+
       const [bookingsRes, financeRes] = await Promise.all([
         fetch("/api/bookings"),
         fetch("/api/finance")
@@ -31,6 +41,26 @@ export default function AdminDashboard() {
   }, []);
 
   const updateStatus = async (id: string, status: string) => {
+    const isNetlify = typeof window !== 'undefined' && window.location.hostname.includes('netlify');
+    if (isNetlify) {
+      const localBookings = JSON.parse(localStorage.getItem('netlify_bookings') || '[]');
+      const bIndex = localBookings.findIndex((b:any) => b.id === id);
+      if (bIndex > -1) {
+        const oldStatus = localBookings[bIndex].status;
+        localBookings[bIndex].status = status;
+        
+        if (status === 'completed' && oldStatus !== 'completed') {
+          const localFinance = JSON.parse(localStorage.getItem('netlify_finance') || '{"totalIncome":0,"totalTransactions":0}');
+          localFinance.totalIncome += localBookings[bIndex].service.price || 0;
+          localFinance.totalTransactions += 1;
+          localStorage.setItem('netlify_finance', JSON.stringify(localFinance));
+        }
+        localStorage.setItem('netlify_bookings', JSON.stringify(localBookings));
+      }
+      fetchData();
+      return;
+    }
+
     await fetch(`/api/bookings/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },

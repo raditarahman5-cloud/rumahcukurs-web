@@ -34,6 +34,31 @@ export default function CustomerDashboard() {
     }
     
     setMessage(null);
+    setLoading(true);
+
+    const isNetlify = typeof window !== 'undefined' && window.location.hostname.includes('netlify');
+    if (isNetlify) {
+      const localBookings = JSON.parse(localStorage.getItem('netlify_bookings') || '[]');
+      const serviceObj = services.find((s: any) => s.id === serviceId);
+      const newBooking = {
+        id: `mem-${Date.now()}`,
+        userId: `guest-${Date.now()}`,
+        user: { name: customerName },
+        serviceId: serviceId,
+        service: { name: serviceObj?.name || 'Service', price: serviceObj?.price || 0 },
+        bookingDate: bookingDate.toISOString(),
+        status: 'pending'
+      };
+      localBookings.push(newBooking);
+      localStorage.setItem('netlify_bookings', JSON.stringify(localBookings));
+      
+      setMessage({ text: "> SUCCESS: Booking sent! See you soon <3", type: "success" });
+      setBookingDate(null);
+      setCustomerName("");
+      setLoading(false);
+      return;
+    }
+
     const res = await fetch("/api/bookings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
