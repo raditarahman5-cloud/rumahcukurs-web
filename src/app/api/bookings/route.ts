@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getMemoryBookings, addMemoryBooking } from '@/lib/memoryDb';
 
 export const dynamic = 'force-dynamic';
-
-import { memoryBookings } from '@/lib/memoryDb';
 
 export async function GET(request: Request) {
   try {
@@ -29,7 +28,8 @@ export async function GET(request: Request) {
     return NextResponse.json(bookings);
   } catch (error) {
     console.error('Prisma Error (likely Netlify SQLite issue), using fallback:', error);
-    return NextResponse.json(memoryBookings.sort((a,b) => new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime()));
+    const bookings = getMemoryBookings();
+    return NextResponse.json(bookings.sort((a: any,b: any) => new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime()));
   }
 }
 
@@ -92,7 +92,8 @@ export async function POST(request: Request) {
       bookingDate: new Date(body.bookingDate),
       status: 'pending'
     };
-    memoryBookings.push(newBooking);
+    
+    addMemoryBooking(newBooking);
     
     return NextResponse.json(newBooking, { status: 201 });
   }

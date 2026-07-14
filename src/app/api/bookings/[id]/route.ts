@@ -59,37 +59,21 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   } catch (error) {
     console.error('Prisma Error (likely Netlify SQLite issue), using fallback:', error);
     
-    // Memory Fallback Logic
-    const { memoryBookings, memoryFinanceRecords } = require('@/lib/memoryDb');
-    // Using simple substring to avoid parsing again if we need id and status
+    const { updateMemoryBookingStatus } = require('@/lib/memoryDb');
     const urlParts = request.url.split('/');
-    const memId = urlParts[urlParts.length - 1]; // id from url
+    const memId = urlParts[urlParts.length - 1];
     
-    // Try to get status from cloned request, safely
     let status = 'confirmed';
     try {
       const cloned = await request.clone().json();
       if (cloned.status) status = cloned.status;
     } catch(e) {}
     
-    const bIndex = memoryBookings.findIndex((b: any) => b.id === memId);
-    if (bIndex > -1) {
-      const oldStatus = memoryBookings[bIndex].status;
-      memoryBookings[bIndex].status = status;
-      
-      // Auto-finance mock
-      if (status === 'completed' && oldStatus !== 'completed') {
-         memoryFinanceRecords.push({
-           id: `fin-${Date.now()}`,
-           bookingId: memId,
-           amount: memoryBookings[bIndex].service.price,
-           type: 'income',
-           createdAt: new Date(),
-           booking: memoryBookings[bIndex]
-         });
-      }
-      return NextResponse.json(memoryBookings[bIndex]);
+    const updated = updateMemoryBookingStatus(memId, status);
+    if (updated) {
+      return NextResponse.json(updated);
     }
+    
     return NextResponse.json({ error: 'Not found in memory' }, { status: 404 });
   }
 }
