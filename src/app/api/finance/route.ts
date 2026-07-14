@@ -32,9 +32,15 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Prisma Error (likely Netlify SQLite issue), using fallback:', error);
+    const { memoryFinanceRecords } = require('@/lib/memoryDb');
+    
+    const totalIncome = memoryFinanceRecords
+      .filter((r: any) => r.type === 'income')
+      .reduce((sum: number, r: any) => sum + r.amount, 0);
+
     return NextResponse.json({
-      records: [],
-      summary: { totalIncome: 0, totalTransactions: 0 }
+      records: memoryFinanceRecords,
+      summary: { totalIncome, totalTransactions: memoryFinanceRecords.length }
     });
   }
 }

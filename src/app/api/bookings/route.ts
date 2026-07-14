@@ -3,8 +3,7 @@ import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
-// Netlify Memory Fallback (resets on cold start)
-const memoryBookings: any[] = [];
+import { memoryBookings } from '@/lib/memoryDb';
 
 export async function GET(request: Request) {
   try {
