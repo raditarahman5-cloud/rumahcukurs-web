@@ -4,9 +4,13 @@ import { prisma } from '@/lib/prisma';
 export const dynamic = 'force-dynamic';
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  let body: any = {};
+  try {
+    body = await request.json();
+  } catch(e) {}
+
   try {
     const { id } = await params;
-    const body = await request.json();
     const { status } = body;
 
     // Ambil data booking beserta layanannya untuk tahu harga
@@ -63,11 +67,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const urlParts = request.url.split('/');
     const memId = urlParts[urlParts.length - 1];
     
-    let status = 'confirmed';
-    try {
-      const cloned = await request.clone().json();
-      if (cloned.status) status = cloned.status;
-    } catch(e) {}
+    const status = body.status || 'confirmed';
     
     const updated = updateMemoryBookingStatus(memId, status);
     if (updated) {
