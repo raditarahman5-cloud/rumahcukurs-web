@@ -28,7 +28,7 @@ export async function GET(request: Request) {
     return NextResponse.json(bookings);
   } catch (error) {
     console.error('Prisma Error (likely Netlify SQLite issue), using fallback:', error);
-    const bookings = getMemoryBookings();
+    const bookings = await getMemoryBookings();
     return NextResponse.json(bookings.sort((a: any,b: any) => new Date(b.bookingDate).getTime() - new Date(a.bookingDate).getTime()));
   }
 }
@@ -93,7 +93,7 @@ export async function POST(request: Request) {
       status: 'pending'
     };
     
-    addMemoryBooking(newBooking);
+    await addMemoryBooking(newBooking);
     
     return NextResponse.json(newBooking, { status: 201 });
   }

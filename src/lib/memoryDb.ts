@@ -1,45 +1,47 @@
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
+import { getStore } from '@netlify/blobs';
 
-const dbPath = path.join(os.tmpdir(), 'rumahcukurs-db.json');
+// Get the blobs store
+function getBlobStore() {
+  // We use a site-wide global store named "rumahcukurs-db"
+  return getStore("rumahcukurs-db");
+}
 
-function getDb() {
-  let db = { bookings: [], finance: [] };
+async function getDb() {
   try {
-    if (fs.existsSync(dbPath)) {
-      const data = fs.readFileSync(dbPath, 'utf8');
-      const parsed = JSON.parse(data);
-      if (Array.isArray(parsed.bookings)) db.bookings = parsed.bookings;
-      if (Array.isArray(parsed.finance)) db.finance = parsed.finance;
+    const store = getBlobStore();
+    const data = await store.get('db', { type: 'json' });
+    if (data && data.bookings && data.finance) {
+      return data;
     }
   } catch (e) {
-    console.error("FS Read error:", e);
+    console.error("Blobs read error:", e);
   }
-  return db;
+  return { bookings: [], finance: [] };
 }
 
-function saveDb(data: any) {
+async function saveDb(data: any) {
   try {
-    fs.writeFileSync(dbPath, JSON.stringify(data));
+    const store = getBlobStore();
+    await store.setJSON('db', data);
   } catch (e) {
-    console.error("FS Write error:", e);
+    console.error("Blobs write error:", e);
   }
 }
 
-export function getMemoryBookings() {
-  return getDb().bookings;
+export async function getMemoryBookings() {
+  const db = await getDb();
+  return db.bookings;
 }
 
-export function addMemoryBooking(booking: any) {
-  const db = getDb();
+export async function addMemoryBooking(booking: any) {
+  const db = await getDb();
   db.bookings.push(booking);
-  saveDb(db);
+  await saveDb(db);
 }
 
-export function updateMemoryBookingStatus(id: string, status: string) {
+export async function updateMemoryBookingStatus(id: string, status: string) {
   try {
-    const db = getDb();
+    const db = await getDb();
     if (!Array.isArray(db.finance)) db.finance = [];
     if (!Array.isArray(db.bookings)) db.bookings = [];
 
@@ -60,15 +62,16 @@ export function updateMemoryBookingStatus(id: string, status: string) {
         });
       }
       
-      saveDb(db);
+      await saveDb(db);
       return db.bookings[bIndex];
     }
   } catch (e) {
-    console.error("Update status memory db error:", e);
+    console.error("Update status blobs db error:", e);
   }
   return null;
 }
 
-export function getMemoryFinance() {
-  return getDb().finance;
+export async function getMemoryFinance() {
+  const db = await getDb();
+  return db.finance;
 }

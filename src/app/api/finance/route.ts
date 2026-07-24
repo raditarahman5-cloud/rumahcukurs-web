@@ -33,7 +33,7 @@ export async function GET() {
   } catch (error) {
     console.error('Prisma Error (likely Netlify SQLite issue), using fallback:', error);
     const { getMemoryFinance } = require('@/lib/memoryDb');
-    const memoryFinanceRecords = getMemoryFinance();
+    const memoryFinanceRecords = await getMemoryFinance();
     
     const totalIncome = memoryFinanceRecords
       .filter((r: any) => r.type === 'income')

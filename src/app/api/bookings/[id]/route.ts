@@ -9,13 +9,18 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     body = await request.json();
   } catch(e) {}
 
+  let routeId = '';
   try {
-    const { id } = await params;
+    const resolvedParams = await params;
+    routeId = resolvedParams.id;
+  } catch(e) {}
+
+  try {
     const { status } = body;
 
     // Ambil data booking beserta layanannya untuk tahu harga
     const booking = await prisma.booking.findUnique({
-      where: { id },
+      where: { id: routeId },
       include: { service: true },
     });
 
@@ -25,7 +30,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     // Update status booking
     const updatedBooking = await prisma.booking.update({
-      where: { id },
+      where: { id: routeId },
       data: { status },
     });
 
@@ -35,13 +40,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       
       // Pastikan belum ada rekaman keuangan untuk booking ini (mencegah double entry)
       const existingRecord = await prisma.financialRecord.findUnique({
-        where: { bookingId: id },
+        where: { bookingId: routeId },
       });
 
       if (!existingRecord) {
         await prisma.financialRecord.create({
           data: {
-            bookingId: id,
+            bookingId: routeId,
             amount: booking.service.price,
             type: 'income',
           },
@@ -52,10 +57,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     // Jika dibatalkan (cancelled), mungkin kita ingin menghapus catatan keuangan jika sudah terlanjur dibuat
     if (status === 'cancelled') {
        const existingRecord = await prisma.financialRecord.findUnique({
-        where: { bookingId: id },
+        where: { bookingId: routeId },
       });
       if (existingRecord) {
-         await prisma.financialRecord.delete({ where: { bookingId: id } });
+         await prisma.financialRecord.delete({ where: { bookingId: routeId } });
       }
     }
 
@@ -64,12 +69,17 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     console.error('Prisma Error (likely Netlify SQLite issue), using fallback:', error);
     
     const { updateMemoryBookingStatus } = require('@/lib/memoryDb');
-    const urlParts = request.url.split('/');
-    const memId = urlParts[urlParts.length - 1];
+    
+    // Gunakan ID dari parameter atau jika gagal coba ekstrak dari URL
+    let memId = routeId;
+    if (!memId) {
+      const urlParts = request.url.split('/');
+      memId = urlParts[urlParts.length - 1];
+    }
     
     const status = body.status || 'confirmed';
     
-    const updated = updateMemoryBookingStatus(memId, status);
+    const updated = await updateMemoryBookingStatus(memId, status);
     if (updated) {
       return NextResponse.json(updated);
     }
