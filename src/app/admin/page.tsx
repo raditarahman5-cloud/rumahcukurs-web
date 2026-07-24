@@ -31,13 +31,36 @@ export default function AdminDashboard() {
   }, []);
 
   const updateStatus = async (id: string, status: string) => {
-
-    await fetch(`/api/bookings/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status })
+    // Optimistic UI Update to hide Netlify Blobs latency
+    setBookings(prev => {
+      const newBookings = [...prev];
+      const bIndex = newBookings.findIndex(b => b.id === id);
+      if (bIndex > -1) {
+        const oldStatus = newBookings[bIndex].status;
+        newBookings[bIndex].status = status;
+        
+        if (status === 'completed' && oldStatus !== 'completed') {
+          setFinance(f => ({
+            totalIncome: f.totalIncome + (newBookings[bIndex].service?.price || 0),
+            totalTransactions: f.totalTransactions + 1
+          }));
+        }
+      }
+      return newBookings;
     });
-    fetchData(); 
+
+    try {
+      await fetch(`/api/bookings/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status })
+      });
+      // Optionally fetch data again, but optimistic update covers it for immediate feedback
+      // fetchData(); 
+    } catch (e) {
+      console.error(e);
+      fetchData(); // revert on error
+    }
   };
 
   if (loading) return <div className="min-h-screen text-pink-500 flex items-center justify-center font-bold text-xl tracking-widest">LOADING... [ Please Wait ]</div>;
