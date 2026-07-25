@@ -86,8 +86,8 @@ export async function POST(request: Request) {
       user: { name: body.customerName || 'GUEST' },
       serviceId: body.serviceId,
       service: {
-        name: body.serviceId === '1' ? 'Premium Haircut' : body.serviceId === '2' ? 'Haircut + Wash' : body.serviceId === '3' ? 'Beard Trim' : 'Grooming',
-        price: body.serviceId === '1' ? 60000 : body.serviceId === '2' ? 75000 : body.serviceId === '3' ? 30000 : 120000
+        name: body.serviceId === '1' ? 'Potong Rambut' : body.serviceId === '2' ? 'Haircut + Wash' : body.serviceId === '3' ? 'Beard Trim' : 'Grooming',
+        price: body.serviceId === '1' ? 35000 : body.serviceId === '2' ? 75000 : body.serviceId === '3' ? 30000 : 120000
       },
       bookingDate: new Date(body.bookingDate),
       status: 'pending'

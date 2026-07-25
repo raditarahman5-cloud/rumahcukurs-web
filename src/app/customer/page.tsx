@@ -29,18 +29,15 @@ export default function CustomerDashboard() {
     });
   }, []);
 
-  const getMinTime = () => {
-    const [hours, minutes] = settings.openTime.split(':').map(Number);
-    const date = new Date();
-    date.setHours(hours, minutes, 0);
-    return date;
-  };
-
-  const getMaxTime = () => {
-    const [hours, minutes] = settings.closeTime.split(':').map(Number);
-    const date = new Date();
-    date.setHours(hours, minutes, 0);
-    return date;
+  const filterTime = (time: Date) => {
+    const [openH, openM] = settings.openTime.split(':').map(Number);
+    const [closeH, closeM] = settings.closeTime.split(':').map(Number);
+    
+    const timeMinutes = time.getHours() * 60 + time.getMinutes();
+    const openMinutes = openH * 60 + openM;
+    const closeMinutes = closeH * 60 + closeM;
+    
+    return timeMinutes >= openMinutes && timeMinutes <= closeMinutes;
   };
 
   const handleBook = async (serviceId: string) => {
@@ -131,8 +128,7 @@ export default function CustomerDashboard() {
                 selected={bookingDate}
                 onChange={(date: Date | null) => setBookingDate(date)}
                 showTimeSelect
-                minTime={getMinTime()}
-                maxTime={getMaxTime()}
+                filterTime={filterTime}
                 timeFormat="HH:mm"
                 timeIntervals={15}
                 timeCaption="Time"

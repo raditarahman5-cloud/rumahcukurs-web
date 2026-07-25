@@ -24,11 +24,17 @@ export async function GET() {
     if (serviceCount === 0) {
       await prisma.service.createMany({
         data: [
-          { name: 'Premium Haircut', price: 60000, durationMinutes: 45 },
+          { name: 'Potong Rambut', price: 35000, durationMinutes: 45 },
           { name: 'Haircut + Wash', price: 75000, durationMinutes: 60 },
           { name: 'Beard Trim (Cukur Kumis/Jenggot)', price: 30000, durationMinutes: 20 },
           { name: 'Full Grooming Package', price: 120000, durationMinutes: 90 },
         ]
+      });
+    } else {
+      // If services exist, make sure 'Potong Rambut' (or 'Premium Haircut') is updated to 35000
+      await prisma.service.updateMany({
+        where: { name: { in: ['Premium Haircut', 'Potong Rambut'] } },
+        data: { name: 'Potong Rambut', price: 35000 }
       });
     }
 
