@@ -6,19 +6,23 @@ import Link from "next/link";
 export default function AdminDashboard() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [finance, setFinance] = useState({ totalIncome: 0, totalTransactions: 0 });
+  const [settings, setSettings] = useState({ openTime: '09:00', closeTime: '21:00' });
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
     try {
-      const [bookingsRes, financeRes] = await Promise.all([
+      const [bookingsRes, financeRes, settingsRes] = await Promise.all([
         fetch("/api/bookings"),
-        fetch("/api/finance")
+        fetch("/api/finance"),
+        fetch("/api/settings")
       ]);
       const bookingsData = await bookingsRes.json();
       const financeData = await financeRes.json();
+      const settingsData = await settingsRes.json();
       
       if(Array.isArray(bookingsData)) setBookings(bookingsData);
       if(financeData.summary) setFinance(financeData.summary);
+      if(settingsData) setSettings(settingsData);
     } catch (error) {
       console.error(error);
     } finally {
@@ -63,6 +67,33 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleUpdateSettings = async () => {
+    try {
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings)
+      });
+      alert('Settings updated successfully!');
+    } catch (e) {
+      console.error(e);
+      alert('Failed to update settings');
+    }
+  };
+
+  const handleResetQueue = async () => {
+    if (!confirm('Are you sure you want to reset the queue? This will clear all pending and confirmed appointments. Completed transactions will be kept in finance history.')) return;
+    
+    try {
+      await fetch('/api/bookings/reset', { method: 'POST' });
+      setBookings([]);
+      alert('Queue resetted successfully!');
+    } catch (e) {
+      console.error(e);
+      alert('Failed to reset queue');
+    }
+  };
+
   if (loading) return <div className="min-h-screen text-pink-500 flex items-center justify-center font-bold text-xl tracking-widest">LOADING... [ Please Wait ]</div>;
 
   return (
@@ -95,11 +126,47 @@ export default function AdminDashboard() {
           </div>
         </div>
 
+        {/* Settings Block */}
+        <div className="bg-black border-2 border-dashed border-purple-500 p-4 md:p-6 shadow-[6px_6px_0px_#9333ea] flex flex-col md:flex-row gap-6 items-end">
+          <div className="flex-1">
+            <label className="block text-purple-300 font-bold mb-2 text-sm">OPEN TIME (HH:MM)</label>
+            <input 
+              type="time" 
+              value={settings.openTime} 
+              onChange={e => setSettings({...settings, openTime: e.target.value})} 
+              className="w-full p-2 bg-[#1a0033] border border-purple-500 text-white focus:outline-none focus:bg-purple-900 transition-colors"
+            />
+          </div>
+          <div className="flex-1">
+            <label className="block text-purple-300 font-bold mb-2 text-sm">CLOSE TIME (HH:MM)</label>
+            <input 
+              type="time" 
+              value={settings.closeTime} 
+              onChange={e => setSettings({...settings, closeTime: e.target.value})} 
+              className="w-full p-2 bg-[#1a0033] border border-purple-500 text-white focus:outline-none focus:bg-purple-900 transition-colors"
+            />
+          </div>
+          <button 
+            onClick={handleUpdateSettings} 
+            className="w-full md:w-auto px-6 py-2 h-[42px] bg-purple-700 hover:bg-purple-500 text-white font-bold border border-purple-400 shadow-[2px_2px_0px_#e9d5ff] active:shadow-[0px_0px_0px_#e9d5ff] active:translate-y-[2px] transition-all"
+          >
+            SAVE SETTINGS
+          </button>
+        </div>
+
         {/* Bookings List */}
         <div className="bg-black border-2 border-dashed border-pink-500 p-4 md:p-6 shadow-[6px_6px_0px_#db2777]">
-          <h2 className="text-lg font-bold text-pink-400 mb-6 border-b border-solid border-pink-900 pb-2">
-            *~ RECENT APPOINTMENTS ~*
-          </h2>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-solid border-pink-900 pb-4 mb-6">
+            <h2 className="text-lg font-bold text-pink-400">
+              *~ RECENT APPOINTMENTS ~*
+            </h2>
+            <button 
+              onClick={handleResetQueue} 
+              className="mt-4 md:mt-0 px-4 py-2 bg-red-900 hover:bg-red-700 text-white font-bold border border-red-500 shadow-[2px_2px_0px_#fca5a5] active:shadow-[0px_0px_0px_#fca5a5] active:translate-y-[2px] transition-all text-sm"
+            >
+              RESET QUEUE
+            </button>
+          </div>
           
           <div className="space-y-4">
             {bookings.length === 0 ? (

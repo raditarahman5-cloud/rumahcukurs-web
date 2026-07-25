@@ -10,18 +10,38 @@ export default function CustomerDashboard() {
   const [loading, setLoading] = useState(true);
   const [bookingDate, setBookingDate] = useState<Date | null>(null);
   const [customerName, setCustomerName] = useState("");
+  const [settings, setSettings] = useState({ openTime: '09:00', closeTime: '21:00' });
   const [message, setMessage] = useState<{text: string, type: 'success' | 'error'} | null>(null);
 
   useEffect(() => {
-    fetch("/api/seed").then(() => {
-      fetch("/api/services")
-        .then(res => res.json())
-        .then(data => {
-          if (Array.isArray(data)) setServices(data);
-          setLoading(false);
-        });
+    Promise.all([
+      fetch("/api/seed"),
+      fetch("/api/services"),
+      fetch("/api/settings")
+    ]).then(async ([_, servicesRes, settingsRes]) => {
+      const servicesData = await servicesRes.json();
+      const settingsData = await settingsRes.json();
+      
+      if (Array.isArray(servicesData)) setServices(servicesData);
+      if (settingsData) setSettings(settingsData);
+      
+      setLoading(false);
     });
   }, []);
+
+  const getMinTime = () => {
+    const [hours, minutes] = settings.openTime.split(':').map(Number);
+    const date = new Date();
+    date.setHours(hours, minutes, 0);
+    return date;
+  };
+
+  const getMaxTime = () => {
+    const [hours, minutes] = settings.closeTime.split(':').map(Number);
+    const date = new Date();
+    date.setHours(hours, minutes, 0);
+    return date;
+  };
 
   const handleBook = async (serviceId: string) => {
     if (!customerName) {
@@ -111,11 +131,13 @@ export default function CustomerDashboard() {
                 selected={bookingDate}
                 onChange={(date: Date | null) => setBookingDate(date)}
                 showTimeSelect
+                minTime={getMinTime()}
+                maxTime={getMaxTime()}
                 timeFormat="HH:mm"
                 timeIntervals={15}
                 timeCaption="Time"
                 dateFormat="d MMMM yyyy - HH:mm"
-                placeholderText="select a date..."
+                placeholderText={`select a date (${settings.openTime} - ${settings.closeTime})`}
                 className="w-full p-3 bg-[#1a0033] border border-pink-500 text-white focus:outline-none focus:bg-pink-950 transition-colors cursor-pointer placeholder:text-purple-700"
                 wrapperClassName="w-full"
                 withPortal

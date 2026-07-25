@@ -16,7 +16,7 @@ async function getDb() {
   } catch (e) {
     console.error("Blobs read error:", e);
   }
-  return { bookings: [], finance: [] };
+  return { bookings: [], finance: [], settings: { openTime: '09:00', closeTime: '21:00' } };
 }
 
 async function saveDb(data: any) {
@@ -73,5 +73,34 @@ export async function updateMemoryBookingStatus(id: string, status: string) {
 
 export async function getMemoryFinance() {
   const db = await getDb();
-  return db.finance;
+  return db.finance || [];
+}
+
+export async function resetMemoryBookings() {
+  try {
+    const db = await getDb();
+    db.bookings = [];
+    await saveDb(db);
+    return true;
+  } catch (e) {
+    console.error("Reset bookings error:", e);
+    return false;
+  }
+}
+
+export async function getMemorySettings() {
+  const db = await getDb();
+  return db.settings || { openTime: '09:00', closeTime: '21:00' };
+}
+
+export async function updateMemorySettings(settings: any) {
+  try {
+    const db = await getDb();
+    db.settings = { ...db.settings, ...settings };
+    await saveDb(db);
+    return db.settings;
+  } catch (e) {
+    console.error("Update settings error:", e);
+    return null;
+  }
 }
