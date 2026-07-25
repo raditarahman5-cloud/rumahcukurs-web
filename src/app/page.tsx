@@ -11,22 +11,22 @@ export default function Home() {
             RUMAH CUKURS
           </h1>
           <div className="text-lg md:text-xl text-purple-200 border-t border-b border-dotted border-purple-500 py-4 mx-4">
-            Welcome to my space. Stay as long as you like. &lt;3<br />
-            Haircuts // Styling // Dye
+            Selamat Datang di Rumah Cukurs<br />
+            Potong Rambut // Styling // Perawatan
           </div>
         </div>
 
         {/* Navigation Buttons */}
         <div className="flex flex-col sm:flex-row gap-8 justify-center mt-12 pt-8">
           <Link href="/customer" className="group px-8 py-4 bg-purple-900 hover:bg-pink-600 border-2 border-pink-500 font-bold transition-all shadow-[4px_4px_0px_#fbcfe8] hover:shadow-[6px_6px_0px_#fbcfe8] hover:-translate-y-1 w-full md:w-auto text-center text-xl">
-            [:: BOOK AN APPOINTMENT ::]
+            PESAN LAYANAN SEKARANG
           </Link>
         </div>
 
         {/* Promotional Footer Elements */}
         <div className="mt-16 flex justify-center gap-4 text-xs text-pink-300 font-bold tracking-widest">
-          <span className="border border-pink-500 px-2 py-1 bg-purple-950/50 shadow-[2px_2px_0px_#db2777]">:: NO BAD HAIRCUTS ALLOWED ::</span>
-          <span className="border border-pink-500 px-2 py-1 bg-purple-950/50 shadow-[2px_2px_0px_#db2777]">:: 100% PREMIUM SERVICE ::</span>
+          <span className="border border-pink-500 px-2 py-1 bg-purple-950/50 shadow-[2px_2px_0px_#db2777]">Layanan Berkualitas</span>
+          <span className="border border-pink-500 px-2 py-1 bg-purple-950/50 shadow-[2px_2px_0px_#db2777]">100% Premium Service</span>
         </div>
       </div>
     </div>

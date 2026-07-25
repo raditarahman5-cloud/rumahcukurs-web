@@ -42,11 +42,11 @@ export default function CustomerDashboard() {
 
   const handleBook = async (serviceId: string) => {
     if (!customerName) {
-      setMessage({ text: "> ERROR: Enter your name first...", type: "error" });
+      setMessage({ text: "> Mohon masukkan nama Anda.", type: "error" });
       return;
     }
     if (!bookingDate) {
-      setMessage({ text: "> ERROR: Time is an illusion, but I still need a date...", type: "error" });
+      setMessage({ text: "> Mohon pilih tanggal dan waktu pesanan.", type: "error" });
       return;
     }
     
@@ -64,16 +64,16 @@ export default function CustomerDashboard() {
     });
 
     if (res.ok) {
-      setMessage({ text: "> SUCCESS: Booking sent! See you soon <3", type: "success" });
+      setMessage({ text: "> SUKSES: Pesanan berhasil dibuat.", type: "success" });
       setBookingDate(null);
       setCustomerName("");
     } else {
-      setMessage({ text: "> ERROR: Something went wrong x_x", type: "error" });
+      setMessage({ text: "> ERROR: Terjadi kesalahan saat memproses pesanan.", type: "error" });
     }
     setLoading(false);
   };
 
-  if (loading) return <div className="min-h-screen text-pink-500 flex items-center justify-center text-xl tracking-widest font-bold">LOADING... [ Please Wait ]</div>;
+  if (loading) return <div className="min-h-screen text-pink-500 flex items-center justify-center text-xl tracking-widest font-bold">Memuat Data...</div>;
 
   return (
     <div className="min-h-screen text-white p-4 md:p-8 relative">
@@ -83,12 +83,12 @@ export default function CustomerDashboard() {
         <header className="bg-[#1a0033] border-2 border-dashed border-pink-500 p-6 shadow-[6px_6px_0px_#db2777] flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold text-white drop-shadow-[2px_2px_0px_#db2777]">
-              BOOKING
+              Pesan Layanan
             </h1>
-            <p className="text-pink-400 mt-2 text-sm">*~ Set your appointment ~*</p>
+            <p className="text-pink-400 mt-2 text-sm">Pilih jadwal potong rambut Anda</p>
           </div>
           <Link href="/" className="text-pink-300 hover:text-white hover:bg-pink-600 transition-colors text-sm border-2 border-pink-500 px-4 py-2 bg-[#2e004f] shadow-[2px_2px_0px_#fbcfe8]">
-            &lt;&lt; BACK
+            &lt;&lt; KEMBALI
           </Link>
         </header>
 
@@ -109,11 +109,11 @@ export default function CustomerDashboard() {
           <div className="space-y-8">
             <div className="bg-[#2e004f] border-2 border-pink-500 p-6 shadow-[4px_4px_0px_#db2777]">
               <label className="block text-pink-300 font-bold mb-4 border-b border-dotted border-pink-500 pb-2">
-                [1] YOUR NAME
+                [1] Nama Anda
               </label>
               <input 
                 type="text" 
-                placeholder="type here..."
+                placeholder="Masukkan nama..."
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
                 className="w-full p-3 bg-[#1a0033] border border-pink-500 text-white focus:outline-none focus:bg-pink-950 transition-colors placeholder:text-purple-700"
@@ -122,7 +122,7 @@ export default function CustomerDashboard() {
 
             <div className="bg-[#2e004f] border-2 border-pink-500 p-6 shadow-[4px_4px_0px_#db2777] relative z-50">
               <label className="block text-pink-300 font-bold mb-4 border-b border-dotted border-pink-500 pb-2">
-                [2] WHEN
+                [2] Pilih Waktu
               </label>
               <DatePicker 
                 selected={bookingDate}
@@ -131,9 +131,9 @@ export default function CustomerDashboard() {
                 filterTime={filterTime}
                 timeFormat="HH:mm"
                 timeIntervals={15}
-                timeCaption="Time"
+                timeCaption="Waktu"
                 dateFormat="d MMMM yyyy - HH:mm"
-                placeholderText={`select a date (${settings.openTime} - ${settings.closeTime})`}
+                placeholderText={`Pilih tanggal (${settings.openTime} - ${settings.closeTime})`}
                 className="w-full p-3 bg-[#1a0033] border border-pink-500 text-white focus:outline-none focus:bg-pink-950 transition-colors cursor-pointer placeholder:text-purple-700"
                 wrapperClassName="w-full"
                 withPortal
@@ -144,7 +144,7 @@ export default function CustomerDashboard() {
           {/* Services Panel */}
           <div className="bg-[#1a0033] border-2 border-dashed border-purple-500 p-6 shadow-[4px_4px_0px_#9333ea]">
             <label className="block text-purple-300 font-bold mb-4 border-b border-dotted border-purple-500 pb-2">
-              [3] CHOOSE STYLE
+              [3] Pilih Layanan
             </label>
             <div className="space-y-4">
               {services.map((service: any) => (
@@ -153,7 +153,7 @@ export default function CustomerDashboard() {
                     <div>
                       <h3 className="text-lg font-bold text-white drop-shadow-[1px_1px_0px_#db2777]">{service.name}</h3>
                       <p className="text-purple-400 text-sm mt-1">
-                        time: {service.durationMinutes} mins
+                        Waktu: {service.durationMinutes} menit
                       </p>
                     </div>
                     <div className="text-pink-400 font-bold bg-[#1a0033] px-2 py-1 border border-pink-900">
@@ -164,7 +164,7 @@ export default function CustomerDashboard() {
                     onClick={() => handleBook(service.id)}
                     className="w-full py-2 bg-pink-700 hover:bg-pink-500 text-white font-bold border border-pink-400 shadow-[2px_2px_0px_#fbcfe8] active:shadow-[0px_0px_0px_#fbcfe8] active:translate-y-[2px] transition-all"
                   >
-                    CONFIRM &gt;&gt;
+                    Pesan Sekarang &gt;&gt;
                   </button>
                 </div>
               ))}
