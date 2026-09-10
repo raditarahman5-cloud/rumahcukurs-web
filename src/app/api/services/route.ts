@@ -28,8 +28,8 @@ export async function POST(request: Request) {
     const service = await prisma.service.create({
       data: {
         name,
-        price: parseFloat(price),
-        durationMinutes: parseInt(durationMinutes, 10),
+        price: Number(price),
+        durationMinutes: Number(durationMinutes),
         imageUrl: imageUrl || null
       }
     });

@@ -24,13 +24,20 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     const dataToUpdate: any = {};
     if (name !== undefined) dataToUpdate.name = name;
-    if (price !== undefined) dataToUpdate.price = parseFloat(price);
-    if (durationMinutes !== undefined) dataToUpdate.durationMinutes = parseInt(durationMinutes, 10);
+    if (price !== undefined) dataToUpdate.price = Number(price);
+    if (durationMinutes !== undefined) dataToUpdate.durationMinutes = Number(durationMinutes);
     if (imageUrl !== undefined) dataToUpdate.imageUrl = imageUrl;
 
-    const updatedService = await prisma.service.update({
+    const updatedService = await prisma.service.upsert({
       where: { id: routeId },
-      data: dataToUpdate,
+      update: dataToUpdate,
+      create: {
+        id: routeId,
+        name: dataToUpdate.name || 'Unknown',
+        price: dataToUpdate.price || 0,
+        durationMinutes: dataToUpdate.durationMinutes || 0,
+        imageUrl: dataToUpdate.imageUrl || null,
+      },
     });
 
     return NextResponse.json(updatedService);

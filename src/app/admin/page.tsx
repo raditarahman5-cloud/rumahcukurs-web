@@ -100,6 +100,17 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditingService({ ...editingService, imageUrl: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const updateStatus = async (id: string, status: string) => {
     // Optimistic UI Update to hide Netlify Blobs latency
     setBookings(prev => {
@@ -225,8 +236,11 @@ export default function AdminDashboard() {
                   <input type="number" value={editingService.durationMinutes} onChange={e => setEditingService({...editingService, durationMinutes: Number(e.target.value)})} className="w-full p-2 bg-[#1a0033] border border-pink-500 text-white focus:outline-none focus:bg-purple-900" />
                 </div>
                 <div>
-                  <label className="block text-xs text-purple-300 mb-1">URL Foto (Opsional)</label>
-                  <input type="text" value={editingService.imageUrl || ''} onChange={e => setEditingService({...editingService, imageUrl: e.target.value})} placeholder="https://..." className="w-full p-2 bg-[#1a0033] border border-pink-500 text-white focus:outline-none focus:bg-purple-900" />
+                  <label className="block text-xs text-purple-300 mb-1">Foto (Opsional)</label>
+                  <input type="file" accept="image/*" onChange={handleFileChange} className="w-full p-1 bg-[#1a0033] border border-pink-500 text-white focus:outline-none focus:bg-purple-900 text-sm" />
+                  {editingService.imageUrl && (
+                    <img src={editingService.imageUrl} alt="Preview" className="mt-2 h-16 w-16 object-cover border border-purple-500 rounded" />
+                  )}
                 </div>
               </div>
               <div className="flex gap-2">
