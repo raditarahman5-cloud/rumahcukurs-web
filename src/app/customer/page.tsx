@@ -12,8 +12,17 @@ export default function CustomerDashboard() {
   const [customerName, setCustomerName] = useState("");
   const [settings, setSettings] = useState({ openTime: '09:00', closeTime: '21:00' });
   const [message, setMessage] = useState<{text: string, type: 'success' | 'error'} | null>(null);
+  
+  const [activeBookingId, setActiveBookingId] = useState<string | null>(null);
+  const [activeBookingStatus, setActiveBookingStatus] = useState<string>('');
+  const [modal, setModal] = useState<{isOpen: boolean, title: string, message: string}>({isOpen: false, title: '', message: ''});
 
   useEffect(() => {
+    const savedBookingId = localStorage.getItem('activeBookingId');
+    if (savedBookingId) {
+      setActiveBookingId(savedBookingId);
+    }
+
     Promise.all([
       fetch("/api/seed"),
       fetch("/api/services"),
@@ -28,6 +37,41 @@ export default function CustomerDashboard() {
       setLoading(false);
     });
   }, []);
+
+  useEffect(() => {
+    if (!activeBookingId) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch("/api/bookings");
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          const myBooking = data.find((b: any) => b.id === activeBookingId);
+          if (myBooking) {
+             if (myBooking.status !== activeBookingStatus) {
+                setActiveBookingStatus(myBooking.status);
+                
+                if (myBooking.status === 'confirmed' && activeBookingStatus === 'pending') {
+                   setModal({ isOpen: true, title: 'Pesanan Diterima!', message: 'Pesanan Anda telah diterima oleh Admin. Silakan menuju ke lokasi.' });
+                }
+                
+                if (myBooking.status === 'completed' || myBooking.status === 'cancelled') {
+                   localStorage.removeItem('activeBookingId');
+                   setActiveBookingId(null);
+                   if (myBooking.status === 'cancelled') {
+                     setMessage({ text: '> Pesanan Anda dibatalkan oleh Admin.', type: 'error' });
+                   }
+                }
+             }
+          }
+        }
+      } catch (e) {
+        console.error("Polling error:", e);
+      }
+    }, 5000); // Check every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [activeBookingId, activeBookingStatus]);
 
   const getMinTime = () => {
     const [hours, minutes] = settings.openTime.split(':').map(Number);
@@ -67,7 +111,12 @@ export default function CustomerDashboard() {
     });
 
     if (res.ok) {
-      setMessage({ text: "> SUKSES: Pesanan berhasil dibuat.", type: "success" });
+      const data = await res.json();
+      localStorage.setItem('activeBookingId', data.id);
+      setActiveBookingId(data.id);
+      setActiveBookingStatus('pending');
+      
+      setMessage({ text: "> SUKSES: Pesanan berhasil dibuat. Menunggu konfirmasi admin.", type: "success" });
       setBookingDate(null);
       setCustomerName("");
     } else {
@@ -103,6 +152,25 @@ export default function CustomerDashboard() {
             : 'bg-black border-red-500 text-red-400'
           }`}>
             {message.text}
+          </div>
+        )}
+
+        {/* Active Order Banner */}
+        {activeBookingId && (
+          <div className="bg-[#2e004f] border-2 border-pink-500 p-6 shadow-[6px_6px_0px_#db2777] flex flex-col md:flex-row justify-between items-center gap-4 animate-pulse">
+            <div>
+              <h2 className="text-xl font-bold text-pink-300">Status Pesanan Aktif</h2>
+              <p className="text-sm text-pink-100 mt-1">ID: {activeBookingId.substring(0, 8)}...</p>
+            </div>
+            <div className={`px-6 py-3 font-bold border-2 text-lg ${
+              activeBookingStatus === 'pending' ? 'bg-black text-purple-300 border-purple-500' :
+              activeBookingStatus === 'confirmed' ? 'bg-pink-900 text-pink-200 border-pink-400 shadow-[4px_4px_0px_#fbcfe8]' :
+              'bg-gray-800 text-gray-400 border-gray-600'
+            }`}>
+              {activeBookingStatus === 'pending' ? 'MENUNGGU KONFIRMASI' : 
+               activeBookingStatus === 'confirmed' ? 'PESANAN DITERIMA' : 
+               activeBookingStatus}
+            </div>
           </div>
         )}
 
@@ -153,6 +221,9 @@ export default function CustomerDashboard() {
             <div className="space-y-4">
               {services.map((service: any) => (
                 <div key={service.id} className="bg-black border border-purple-800 p-4 hover:border-pink-500 hover:bg-[#2e004f] transition-all">
+                  {service.imageUrl && (
+                    <img src={service.imageUrl} alt={service.name} className="w-full h-40 object-cover border border-purple-900 mb-4" />
+                  )}
                   <div className="flex justify-between items-start mb-4">
                     <div>
                       <h3 className="text-lg font-bold text-white drop-shadow-[1px_1px_0px_#db2777]">{service.name}</h3>
@@ -166,9 +237,14 @@ export default function CustomerDashboard() {
                   </div>
                   <button 
                     onClick={() => handleBook(service.id)}
-                    className="w-full py-2 bg-pink-700 hover:bg-pink-500 text-white font-bold border border-pink-400 shadow-[2px_2px_0px_#fbcfe8] active:shadow-[0px_0px_0px_#fbcfe8] active:translate-y-[2px] transition-all"
+                    disabled={!!activeBookingId}
+                    className={`w-full py-2 font-bold border shadow-[2px_2px_0px_#fbcfe8] active:shadow-[0px_0px_0px_#fbcfe8] active:translate-y-[2px] transition-all ${
+                      activeBookingId 
+                      ? 'bg-gray-800 text-gray-500 border-gray-600 cursor-not-allowed shadow-none'
+                      : 'bg-pink-700 hover:bg-pink-500 text-white border-pink-400'
+                    }`}
                   >
-                    Pesan Sekarang &gt;&gt;
+                    {activeBookingId ? 'Anda Memiliki Pesanan Aktif' : 'Pesan Sekarang >>'}
                   </button>
                 </div>
               ))}
@@ -177,6 +253,24 @@ export default function CustomerDashboard() {
 
         </div>
       </div>
+
+      {/* Notification Modal */}
+      {modal.isOpen && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-[#1a0033] border-2 border-pink-500 p-6 shadow-[8px_8px_0px_#db2777] max-w-md w-full animate-in fade-in zoom-in duration-200">
+            <h3 className="text-xl font-bold text-white mb-4 border-b border-pink-800 pb-2">{modal.title}</h3>
+            <p className="text-pink-100 mb-6">{modal.message}</p>
+            <div className="flex justify-end">
+              <button 
+                onClick={() => setModal({ isOpen: false, title: '', message: '' })}
+                className="px-4 py-2 bg-pink-700 hover:bg-pink-500 text-white font-bold border border-pink-400 shadow-[2px_2px_0px_#fbcfe8] active:shadow-[0px_0px_0px_#fbcfe8] active:translate-y-[2px] transition-all"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

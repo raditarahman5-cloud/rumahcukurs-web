@@ -5,9 +5,12 @@ import Link from "next/link";
 
 export default function AdminDashboard() {
   const [bookings, setBookings] = useState<any[]>([]);
+  const [services, setServices] = useState<any[]>([]);
+  const [editingService, setEditingService] = useState<any>(null);
   const [finance, setFinance] = useState({ totalIncome: 0, totalTransactions: 0 });
   const [settings, setSettings] = useState({ openTime: '09:00', closeTime: '21:00' });
   const [loading, setLoading] = useState(true);
+  const [lastNotifiedBookingId, setLastNotifiedBookingId] = useState<string | null>(null);
   const [modal, setModal] = useState<{isOpen: boolean, title: string, message: string, isConfirm: boolean, onConfirm?: () => void}>({isOpen: false, title: '', message: '', isConfirm: false});
 
   const showAlert = (title: string, message: string) => setModal({ isOpen: true, title, message, isConfirm: false });
@@ -15,18 +18,26 @@ export default function AdminDashboard() {
 
   const fetchData = async () => {
     try {
-      const [bookingsRes, financeRes, settingsRes] = await Promise.all([
+      const [bookingsRes, financeRes, settingsRes, servicesRes] = await Promise.all([
         fetch("/api/bookings"),
         fetch("/api/finance"),
-        fetch("/api/settings")
+        fetch("/api/settings"),
+        fetch("/api/services")
       ]);
       const bookingsData = await bookingsRes.json();
       const financeData = await financeRes.json();
       const settingsData = await settingsRes.json();
+      const servicesData = await servicesRes.json();
       
-      if(Array.isArray(bookingsData)) setBookings(bookingsData);
+      if(Array.isArray(bookingsData)) {
+        setBookings(bookingsData);
+        if (bookingsData.length > 0 && lastNotifiedBookingId === null) {
+           setLastNotifiedBookingId(bookingsData[0].id);
+        }
+      }
       if(financeData.summary) setFinance(financeData.summary);
       if(settingsData) setSettings(settingsData);
+      if(Array.isArray(servicesData)) setServices(servicesData);
     } catch (error) {
       console.error(error);
     } finally {
@@ -36,7 +47,58 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchData();
+
+    // Polling for new bookings
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch("/api/bookings");
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setBookings(data);
+          
+          // Check for new pending booking
+          const latestPending = data.find(b => b.status === 'pending');
+          if (latestPending) {
+             setLastNotifiedBookingId(prev => {
+                if (prev !== latestPending.id) {
+                   showAlert("Pesanan Baru!", `Ada pesanan baru dari ${latestPending.user?.name || 'GUEST'}`);
+                   return latestPending.id;
+                }
+                return prev;
+             });
+          }
+        }
+      } catch (e) {
+        console.error("Polling error:", e);
+      }
+    }, 10000); // Poll every 10 seconds
+
+    return () => clearInterval(interval);
   }, []);
+
+  const handleSaveService = async () => {
+    try {
+      const url = editingService.id ? `/api/services/${editingService.id}` : '/api/services';
+      const method = editingService.id ? 'PATCH' : 'POST';
+      
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editingService)
+      });
+      
+      if (res.ok) {
+        showAlert('Sukses', 'Layanan berhasil disimpan.');
+        setEditingService(null);
+        fetchData();
+      } else {
+        showAlert('Gagal', 'Terjadi kesalahan saat menyimpan layanan.');
+      }
+    } catch (e) {
+      console.error(e);
+      showAlert('Gagal', 'Terjadi kesalahan jaringan.');
+    }
+  };
 
   const updateStatus = async (id: string, status: string) => {
     // Optimistic UI Update to hide Netlify Blobs latency
@@ -131,6 +193,62 @@ export default function AdminDashboard() {
           <div className="bg-[#2e004f] border-2 border-purple-500 p-6 shadow-[4px_4px_0px_#9333ea] hover:bg-[#3b0764] transition-colors">
             <h3 className="text-purple-300 font-bold mb-2 text-sm border-b border-dotted border-purple-500 pb-2">Total Transaksi</h3>
             <p className="text-3xl md:text-4xl font-bold text-white drop-shadow-[1px_1px_0px_#9333ea] mt-4">{finance.totalTransactions} Transaksi</p>
+          </div>
+        </div>
+
+        {/* Services / Models Block */}
+        <div className="bg-[#2e004f] border-2 border-dashed border-pink-500 p-4 md:p-6 shadow-[6px_6px_0px_#db2777]">
+          <div className="flex justify-between items-center border-b border-solid border-pink-900 pb-4 mb-6">
+            <h2 className="text-lg font-bold text-pink-400">Manajemen Model & Layanan</h2>
+            <button 
+              onClick={() => setEditingService({ name: '', price: 0, durationMinutes: 30, imageUrl: '' })} 
+              className="px-4 py-2 bg-pink-700 hover:bg-pink-500 text-white font-bold border border-pink-400 shadow-[2px_2px_0px_#fbcfe8] active:translate-y-[2px] transition-all text-sm"
+            >
+              + TAMBAH BARU
+            </button>
+          </div>
+
+          {editingService && (
+            <div className="mb-6 p-4 bg-black border border-pink-500">
+              <h3 className="text-pink-300 font-bold mb-4">{editingService.id ? 'Edit Layanan' : 'Tambah Layanan Baru'}</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-xs text-purple-300 mb-1">Nama Model/Layanan</label>
+                  <input type="text" value={editingService.name} onChange={e => setEditingService({...editingService, name: e.target.value})} className="w-full p-2 bg-[#1a0033] border border-pink-500 text-white focus:outline-none focus:bg-purple-900" />
+                </div>
+                <div>
+                  <label className="block text-xs text-purple-300 mb-1">Harga (Rp)</label>
+                  <input type="number" value={editingService.price} onChange={e => setEditingService({...editingService, price: Number(e.target.value)})} className="w-full p-2 bg-[#1a0033] border border-pink-500 text-white focus:outline-none focus:bg-purple-900" />
+                </div>
+                <div>
+                  <label className="block text-xs text-purple-300 mb-1">Durasi (Menit)</label>
+                  <input type="number" value={editingService.durationMinutes} onChange={e => setEditingService({...editingService, durationMinutes: Number(e.target.value)})} className="w-full p-2 bg-[#1a0033] border border-pink-500 text-white focus:outline-none focus:bg-purple-900" />
+                </div>
+                <div>
+                  <label className="block text-xs text-purple-300 mb-1">URL Foto (Opsional)</label>
+                  <input type="text" value={editingService.imageUrl || ''} onChange={e => setEditingService({...editingService, imageUrl: e.target.value})} placeholder="https://..." className="w-full p-2 bg-[#1a0033] border border-pink-500 text-white focus:outline-none focus:bg-purple-900" />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={handleSaveService} className="px-4 py-2 bg-purple-700 hover:bg-purple-500 text-white font-bold border border-purple-400 shadow-[2px_2px_0px_#e9d5ff] active:translate-y-[2px] transition-all">SIMPAN</button>
+                <button onClick={() => setEditingService(null)} className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white font-bold border border-gray-600 transition-all">BATAL</button>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {services.map(service => (
+              <div key={service.id} className="bg-black border border-purple-800 p-4 hover:border-pink-500 transition-colors">
+                {service.imageUrl ? (
+                  <img src={service.imageUrl} alt={service.name} className="w-full h-32 object-cover border border-purple-900 mb-3" />
+                ) : (
+                  <div className="w-full h-32 bg-[#1a0033] border border-purple-900 mb-3 flex items-center justify-center text-purple-600 text-xs">No Image</div>
+                )}
+                <h3 className="font-bold text-white mb-1">{service.name}</h3>
+                <p className="text-pink-400 text-sm mb-3">Rp {service.price.toLocaleString('id-ID')} | {service.durationMinutes} mnt</p>
+                <button onClick={() => setEditingService(service)} className="w-full py-1 bg-[#1a0033] text-purple-300 hover:text-white border border-purple-600 text-sm font-bold hover:bg-purple-800 transition-colors">EDIT</button>
+              </div>
+            ))}
           </div>
         </div>
 
