@@ -11,11 +11,11 @@ model User {
   id        String    @id @default(uuid())
   name      String
   email     String    @unique
-  password  String    // Optional for now, assuming simple auth
-  role      String    @default("customer") // "admin" or "customer"
-  bookings  Booking[]
+  password  String
+  role      String    @default("customer")
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  bookings  Booking[]
 }
 
 model Service {
@@ -23,30 +23,30 @@ model Service {
   name            String
   price           Float
   durationMinutes Int
-  imageUrl        String?
-  bookings        Booking[]
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+  imageUrl        String?
+  bookings        Booking[]
 }
 
 model Booking {
-  id              String            @id @default(uuid())
-  user            User              @relation(fields: [userId], references: [id])
+  id              String           @id @default(uuid())
   userId          String
-  service         Service           @relation(fields: [serviceId], references: [id])
   serviceId       String
   bookingDate     DateTime
-  status          String            @default("pending") // "pending", "confirmed", "completed", "cancelled"
+  status          String           @default("pending")
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  service         Service          @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   financialRecord FinancialRecord?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
 }
 
 model FinancialRecord {
   id        String   @id @default(uuid())
-  booking   Booking?  @relation(fields: [bookingId], references: [id])
-  bookingId String?   @unique
+  bookingId String?  @unique
   amount    Float
-  type      String   @default("income") // "income" or "expense"
+  type      String   @default("income")
   createdAt DateTime @default(now())
+  booking   Booking? @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 }

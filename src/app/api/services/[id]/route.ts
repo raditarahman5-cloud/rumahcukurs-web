@@ -46,3 +46,24 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  let routeId = '';
+  try {
+    const resolvedParams = await params;
+    routeId = resolvedParams.id;
+  } catch(e) {
+    return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 });
+  }
+
+  try {
+    await prisma.service.delete({
+      where: { id: routeId },
+    });
+    
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting service:', error);
+    return NextResponse.json({ error: 'Gagal menghapus layanan. Pastikan tidak ada transaksi yang terkait.' }, { status: 500 });
+  }
+}

@@ -100,6 +100,29 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleDeleteService = (id: string) => {
+    showConfirm(
+      'Hapus Layanan?',
+      'Apakah Anda yakin ingin menghapus layanan ini?',
+      async () => {
+        try {
+          const res = await fetch(`/api/services/${id}`, { method: 'DELETE' });
+          if (res.ok) {
+            showAlert('Sukses', 'Layanan berhasil dihapus.');
+            setEditingService(null);
+            fetchData();
+          } else {
+            const data = await res.json().catch(() => ({}));
+            showAlert('Gagal', data.error || 'Terjadi kesalahan saat menghapus layanan.');
+          }
+        } catch (e) {
+          console.error(e);
+          showAlert('Gagal', 'Terjadi kesalahan jaringan.');
+        }
+      }
+    );
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -269,6 +292,9 @@ export default function AdminDashboard() {
               <div className="flex gap-2">
                 <button onClick={handleSaveService} className="px-4 py-2 bg-purple-700 hover:bg-purple-500 text-white font-bold border border-purple-400 shadow-[2px_2px_0px_#e9d5ff] active:translate-y-[2px] transition-all">SIMPAN</button>
                 <button onClick={() => setEditingService(null)} className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white font-bold border border-gray-600 transition-all">BATAL</button>
+                {editingService.id && (
+                  <button onClick={() => handleDeleteService(editingService.id)} className="px-4 py-2 bg-red-900 hover:bg-red-700 text-white font-bold border border-red-500 shadow-[2px_2px_0px_#fca5a5] active:translate-y-[2px] transition-all ml-auto">HAPUS</button>
+                )}
               </div>
             </div>
           )}
